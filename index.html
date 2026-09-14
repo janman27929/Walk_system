@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Walk System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #1a1a2e;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #e2c97e;
+    }
+
+    header p {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .card-section {
+      margin: 20px auto;
+      max-width: 480px;
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      color: white;
+    }
+
+    .badge-am { background: #c8952a; }
+    .badge-pm { background: #5c6bc0; }
+
+    .card-subtitle {
+      font-size: 0.75rem;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    /* Card flip container */
+    .flip-wrapper {
+      perspective: 1000px;
+      width: 100%;
+      min-height: 320px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .flip-inner {
+      position: relative;
+      width: 100%;
+      min-height: 320px;
+      transform-style: preserve-3d;
+      transition: transform 0.5s ease;
+    }
+
+    .flip-wrapper.flipped .flip-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      min-height: 320px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 10px;
+      padding: 16px;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+    }
+
+    /* AM card colors */
+    .am-face { background: #2e2310; border-color: #c8952a; }
+
+    /* PM card colors */
+    .pm-face { background: #0f1230; border-color: #5c6bc0; }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    .card-header-title {
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .am-face .card-header-title { color: #e2c97e; }
+    .pm-face .card-header-title { color: #9fa8da; }
+
+    .card-header-stamp {
+      font-size: 0.65rem;
+      color: #aaa;
+      font-family: monospace;
+    }
+
+    .phase {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .phase-num {
+      font-size: 0.8rem;
+      font-weight: bold;
+      min-width: 18px;
+      padding-top: 1px;
+    }
+
+    .am-face .phase-num { color: #e2c97e; }
+    .pm-face .phase-num { color: #9fa8da; }
+
+    .phase-content {}
+
+    .phase-title {
+      font-size: 0.78rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #f0f0f0;
+    }
+
+    .phase-sub {
+      font-size: 0.72rem;
+      color: #aaa;
+    }
+
+    .phase-line {
+      font-size: 0.72rem;
+      color: #ccc;
+      padding-left: 6px;
+      margin-top: 2px;
+      line-height: 1.5;
+    }
+
+    .phase-line::before {
+      content: '→ ';
+      color: #888;
+    }
+
+    .phase-italic {
+      font-size: 0.68rem;
+      color: #999;
+      font-style: italic;
+      padding-left: 6px;
+      margin-top: 2px;
+    }
+
+    .card-footer {
+      border-top: 1px solid rgba(255,255,255,0.15);
+      margin-top: 10px;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: #888;
+      font-style: italic;
+      font-family: monospace;
+    }
+
+    .flip-hint {
+      text-align: right;
+      font-size: 0.65rem;
+      color: #666;
+      font-style: italic;
+      margin-top: 6px;
+      font-family: monospace;
+    }
+
+    .divider {
+      max-width: 480px;
+      margin: 10px auto;
+      border: none;
+      border-top: 1px dashed #444;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #555;
+      font-style: italic;
+      padding: 24px 0 16px;
+    }
+
+    /* Tap indicator pulse on load */
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(226,201,126,0.4); }
+      70%  { box-shadow: 0 0 0 10px rgba(226,201,126,0); }
+      100% { box-shadow: 0 0 0 0 rgba(226,201,126,0); }
+    }
+
+    .flip-wrapper:focus { outline: none; }
+
+    .tap-hint {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #666;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>The Walk System</h1>
+  <p>Open in the morning &nbsp;·&nbsp; Close in the afternoon</p>
+</header>
+
+<!-- ═══════════════════════════════ AM CARD ═══════════════════════════════ -->
+<div class="card-section">
+  <div class="card-label">
+    <span class="badge badge-am">AM Card</span>
+    <span class="card-subtitle">Morning Walk — Orientation</span>
+  </div>
+  <p class="tap-hint">Tap card to flip</p>
+
+  <div class="flip-wrapper" id="am-card" onclick="flipCard('am-card')" role="button" tabindex="0">
+    <div class="flip-inner">
+
+      <!-- AM FRONT -->
+      <div class="card-face am-face">
+        <div class="card-header">
+          <span class="card-header-title">Morning Walk — Side A</span>
+          <span class="card-header-stamp">LOG START TIME ▶</span>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">1.</span>
+          <div class="phase-content">
+            <span class="phase-title">Dark Community Stretch</span>
+            <span class="phase-sub"> — Loving-Kindness</span>
+            <div class="phase-line">May I be happy · safe · healthy · at ease</div>
+            <div class="phase-line">Extend: Wife → Family → Neighbors → All</div>
+          </div>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">2.</span>
+          <div class="phase-content">
+            <span class="phase-title">The Lots</span>
+            <span class="phase-sub"> — One Intention</span>
+            <div class="phase-line">One sentence. What makes today a good day?</div>
+          </div>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">3.</span>
+          <div class="phase-content">
+            <span class="phase-title">County Approach</span>
+            <span class="phase-sub"> — Daily Planning</span>
+            <div class="phase-line">Work · Home · Family · Health plan check-in</div>
+          </div>
+        </div>
+
+        <div class="flip-hint">tap for Side B →</div>
+      </div>
+
+      <!-- AM BACK -->
+      <div class="card-face card-back am-face">
+        <div class="card-header">
+          <span class="card-header-title">Morning Walk — Side B</span>
+          <span class="card-header-stamp">&nbsp;</span>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">4.</span>
+          <div class="phase-content">
+            <span class="phase-title">Reservoir Loops</span>
+            <span class="phase-sub"> — The Grand Plan</span>
+            <div class="phase-line">Weight: honest check-in vs. the plan</div>
+            <div class="phase-line">Active hustle: what is the ONE next action?</div>
+            <div class="phase-line">On-deck projects: keep warm, stay alive</div>
+            <div class="phase-italic">Ask: what moved the needle yesterday?</div>
+          </div>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">5.</span>
+          <div class="phase-content">
+            <span class="phase-title">Back Driveway</span>
+            <span class="phase-sub"> — Close Out</span>
+            <div class="phase-line">One specific gratitude (make it particular)</div>
+            <div class="phase-line">How will I carry myself today?</div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span>◀ LOG END TIME</span>
+          <span>Transcribe when home</span>
+        </div>
+        <div class="flip-hint">← tap for Side A</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ═══════════════════════════════ PM CARD ═══════════════════════════════ -->
+<div class="card-section">
+  <div class="card-label">
+    <span class="badge badge-pm">PM Card</span>
+    <span class="card-subtitle">Afternoon Walk — Accountability</span>
+  </div>
+  <p class="tap-hint">Tap card to flip</p>
+
+  <div class="flip-wrapper" id="pm-card" onclick="flipCard('pm-card')" role="button" tabindex="0">
+    <div class="flip-inner">
+
+      <!-- PM FRONT -->
+      <div class="card-face pm-face">
+        <div class="card-header">
+          <span class="card-header-title">Afternoon Walk — Side A</span>
+          <span class="card-header-stamp">LOG START TIME ▶</span>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">1.</span>
+          <div class="phase-content">
+            <span class="phase-title">Opening Stretch</span>
+            <span class="phase-sub"> — Loving-Kindness</span>
+            <div class="phase-line">May I be happy · safe · healthy · at ease</div>
+            <div class="phase-line">Extend: Wife → Family → Neighbors → All</div>
+            <div class="phase-italic">Same as morning. Bookend the day.</div>
+          </div>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">2.</span>
+          <div class="phase-content">
+            <span class="phase-title">The Lots</span>
+            <span class="phase-sub"> — The Honest Reckoning</span>
+            <div class="phase-line">This morning I said I would...</div>
+            <div class="phase-line">What I actually did was...</div>
+            <div class="phase-italic">No judgment. Just the record.</div>
+          </div>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">3.</span>
+          <div class="phase-content">
+            <span class="phase-title">County Approach</span>
+            <span class="phase-sub"> — What Came Up Today</span>
+            <div class="phase-line">New tasks · new ideas · new problems</div>
+            <div class="phase-line">Add to the active list now, not later</div>
+          </div>
+        </div>
+
+        <div class="flip-hint">tap for Side B →</div>
+      </div>
+
+      <!-- PM BACK -->
+      <div class="card-face card-back pm-face">
+        <div class="card-header">
+          <span class="card-header-title">Afternoon Walk — Side B</span>
+          <span class="card-header-stamp">&nbsp;</span>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">4.</span>
+          <div class="phase-content">
+            <span class="phase-title">Reservoir Loops</span>
+            <span class="phase-sub"> — Needle Check</span>
+            <div class="phase-line">Weight: how did today's plan actually go?</div>
+            <div class="phase-line">Active hustle: did I move it? By how much?</div>
+            <div class="phase-line">On-deck: anything surfaced today worth noting?</div>
+            <div class="phase-italic">Ask: what patterns am I seeing this week?</div>
+          </div>
+        </div>
+
+        <div class="phase">
+          <span class="phase-num">5.</span>
+          <div class="phase-content">
+            <span class="phase-title">Back Driveway</span>
+            <span class="phase-sub"> — Close the Loop</span>
+            <div class="phase-line">One win from today, however small</div>
+            <div class="phase-line">One thing to carry into tomorrow morning</div>
+            <div class="phase-line">Let the day go. It's done.</div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span>◀ LOG END TIME</span>
+          <span>Transcribe when home</span>
+        </div>
+        <div class="flip-hint">← tap for Side A</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>The Walk System &nbsp;·&nbsp; Open · Walk · Close · Repeat</footer>
+
+<script>
+  function flipCard(id) {
+    document.getElementById(id).classList.toggle('flipped');
+  }
+
+  // Also allow keyboard activation
+  document.querySelectorAll('.flip-wrapper').forEach(function(el) {
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.classList.toggle('flipped');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
